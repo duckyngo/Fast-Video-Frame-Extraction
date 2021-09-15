@@ -128,15 +128,17 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
     }
 
     override fun onCurrentFrameExtracted(currentFrame: Frame) {
+        // 1. Convert frame byte buffer to bitmap
         val imageBitmap = Utils.fromBufferToBitmap(currentFrame.byteBuffer, currentFrame.width, currentFrame.height)
+
+        // 2. Get the frame file in app external file directory
         val allFrameFileFolder = File(this.getExternalFilesDir(null), "all-frames")
         if (!allFrameFileFolder.isDirectory) {
             allFrameFileFolder.mkdirs()
         }
-
         val frameFile = File(allFrameFileFolder, "frame_num_${currentFrame.position}.jpeg")
-        // TODO() change to app file dir
 
+        // 3. Save current frame to storage
         imageBitmap?.let { Utils.saveImageToFile(it, frameFile) }
     }
 
