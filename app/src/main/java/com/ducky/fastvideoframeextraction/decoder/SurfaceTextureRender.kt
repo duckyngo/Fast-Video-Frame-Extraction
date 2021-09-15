@@ -219,7 +219,7 @@ class SurfaceTextureRender {
         }
     }
 
-    fun checkLocation(location: Int, label: String) {
+    private fun checkLocation(location: Int, label: String) {
         if (location < 0) {
             throw RuntimeException("Unable to locate '$label' in program")
         }

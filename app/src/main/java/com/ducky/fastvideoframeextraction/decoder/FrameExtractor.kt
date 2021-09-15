@@ -21,8 +21,8 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
     private val frameCount = Int.MAX_VALUE
     private val SDK_VERSION_INT = android.os.Build.VERSION.SDK_INT
 
-    val VERBOSE = false
-    var MAX_FRAMES = 0
+    private val verbose = false
+    private var MAX_FRAMES = 0
 
     var isPortrait = false
     var savedFrameWidth = 0
@@ -95,7 +95,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
 
 
             // Checking video orientation is portrait or landscape
-            isPortrait = orientation.toInt() == 90 || orientation.toInt() == 270
+            isPortrait = orientation == 90 || orientation == 270
             Log.d(TAG, "isPortrait:  $isPortrait")
             if (SDK_VERSION_INT >= 21) {
                 if (isPortrait) {
@@ -109,7 +109,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                 savedFrameHeight = height / size
                 savedFrameWidth = width / size
             }
-            if (VERBOSE) {
+            if (verbose) {
                 Log.d(TAG, "Video size: " + format.getInteger(MediaFormat.KEY_WIDTH) + "x" + format.getInteger(MediaFormat.KEY_HEIGHT))
             }
 
@@ -155,7 +155,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
             val format = extractor.getTrackFormat(idx)
             val mime = format.getString(MediaFormat.KEY_MIME)
             if (mime!!.startsWith("video/")) {
-                if (VERBOSE) {
+                if (verbose) {
                     Log.d(TAG, "Extractor selected track $idx ($mime): $format")
                 }
                 return idx
@@ -178,7 +178,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
         var outputDone = false
         var inputDone = false
 
-        if (VERBOSE) Log.d(TAG, "Start extract loop...")
+        if (verbose) Log.d(TAG, "Start extract loop...")
         while (!outputDone && !isTerminated) {
 
             // Feed more data to the decoder.
@@ -196,7 +196,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                             MediaCodec.BUFFER_FLAG_END_OF_STREAM
                         )
                         inputDone = true
-                        if (VERBOSE) Log.d(TAG, "sent input EOS")
+                        if (verbose) Log.d(TAG, "sent input EOS")
                     } else {
                         if (extractor.sampleTrackIndex != trackIndex) {
                             Log.w(TAG, "WEIRD: got sample from track " + extractor.sampleTrackIndex + ", expected " + trackIndex)
@@ -206,38 +206,38 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                             inputBufIndex, 0, chunkSize,
                             presentationTimeUs, 0 /*flags*/
                         )
-                        if (VERBOSE) {
+                        if (verbose) {
                             Log.d(TAG, ("submitted frame $inputChunk to dec, size=$chunkSize"))
                         }
                         inputChunk++
                         extractor.advance()
                     }
                 } else {
-                    if (VERBOSE) Log.d(TAG, "input buffer not available")
+                    if (verbose) Log.d(TAG, "input buffer not available")
                 }
             }
             if (!outputDone) {
                 val decoderStatus = decoder.dequeueOutputBuffer(info, TIMEOUT_USEC.toLong())
                 if (decoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                     // no output available yet
-                    if (VERBOSE) Log.d(TAG, "no output from decoder available")
+                    if (verbose) Log.d(TAG, "no output from decoder available")
                 } else if (decoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                     // not important for us, since we're using Surface
-                    if (VERBOSE) Log.d(TAG, "decoder output buffers changed")
+                    if (verbose) Log.d(TAG, "decoder output buffers changed")
                 } else if (decoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     val newFormat = decoder.outputFormat
-                    if (VERBOSE) Log.d(TAG, "decoder output format changed: $newFormat")
+                    if (verbose) Log.d(TAG, "decoder output format changed: $newFormat")
                 } else if (decoderStatus < 0) {
 //                    fail("unexpected result from decoder.dequeueOutputBuffer: " + decoderStatus);
                     Log.d(TAG, "doExtract: unexpected result from decoder.dequeueOutputBuffer: $decoderStatus")
                 } else { // decoderStatus >= 0
-                    if (VERBOSE) Log.d(
+                    if (verbose) Log.d(
                         TAG,
                         ("surface decoder given buffer " + decoderStatus +
                                 " (size=" + info.size + ")")
                     )
                     if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                        if (VERBOSE) Log.d(
+                        if (verbose) Log.d(
                             TAG,
                             "output EOS"
                         )
@@ -251,7 +251,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                     // need to wait for the onFrameAvailable callback to fire.
                     decoder.releaseOutputBuffer(decoderStatus, doRender)
                     if (doRender) {
-                        if (VERBOSE) Log.d(TAG, "Awaiting decode of frame $decodeCount")
+                        if (verbose) Log.d(TAG, "Awaiting decode of frame $decodeCount")
                         outputSurface.awaitNewImage()
                         if (isPortrait) {
                             outputSurface.drawImage(false)
@@ -263,7 +263,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                             val currentFrame = outputSurface.retrieveFrame(decodeCount, 0)
                             listener.onCurrentFrameExtracted(currentFrame)
                             totalSavingTimeNs += System.nanoTime() - startWhen
-                            if(VERBOSE) Log.d(TAG, "$decodeCount / Max: $MAX_FRAMES")
+                            if(verbose) Log.d(TAG, "$decodeCount / Max: $MAX_FRAMES")
                         }
                         decodeCount++
                     }
@@ -272,7 +272,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
         }
         val totalSavedFrames = if ((MAX_FRAMES < decodeCount)) MAX_FRAMES else decodeCount
 
-        if (VERBOSE) Log.d(TAG, ("Total saved frames: $totalSavedFrames  " +
+        if (verbose) Log.d(TAG, ("Total saved frames: $totalSavedFrames  " +
                 "| Total time: ${totalSavingTimeNs / 1000000} ms  " +
                 "| Each frame took: ${(totalSavingTimeNs / totalSavedFrames / 1000)} us "))
 

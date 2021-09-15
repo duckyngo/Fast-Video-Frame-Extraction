@@ -6,8 +6,6 @@ import android.opengl.EGLConfig
 import android.opengl.GLES20
 import android.util.Log
 import android.view.Surface
-import com.ducky.fastvideoframeextraction.Utils
-import java.io.File
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -20,7 +18,7 @@ import kotlin.concurrent.withLock
  * Created by Duc Ky Ngo on 9/15/2021.
  * duckyngo1705@gmail.com
  */
-class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : SurfaceTexture.OnFrameAvailableListener {
+class CodecOutputSurface(width: Int, height: Int, private val isPortrait: Boolean) : SurfaceTexture.OnFrameAvailableListener {
 
     private var mTextureRender: SurfaceTextureRender?
     private var mSurfaceTexture: SurfaceTexture?
@@ -39,13 +37,7 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
 
     private var mPixelBuf: ByteBuffer
 
-    private var VERBOSE = true
-
-    /**
-     * Creates a CodecOutputSurface backed by a pbuffer with the specified dimensions.  The
-     * new EGL context and surface will be made current.  Creates a Surface that can be passed
-     * to MediaCodec.configure().
-     */
+    private var verbose = true
 
     init {
         require(!(width <= 0 || height <= 0))
@@ -54,30 +46,16 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
         eglSetup()
         makeCurrent()
 
-        /**
-         * Creates interconnected instances of TextureRender, SurfaceTexture, and Surface.
-         */
-
+        // Creates interconnected instances of SurfaceTextureRender, SurfaceTexture, and Surface.
         mTextureRender = SurfaceTextureRender()
         mTextureRender?.surfaceCreated()
-        if (VERBOSE) Log.d(
+        if (verbose) Log.d(
             TAG,
             "textureID=" + mTextureRender?.getTextureId()
         )
 
         mSurfaceTexture = SurfaceTexture(mTextureRender?.getTextureId()!!)
 
-        // This doesn't work if this object is created on the thread that CTS started for
-        // these test cases.
-        //
-        // The CTS-created thread has a Looper, and the SurfaceTexture constructor will
-        // create a Handler that uses it.  The "frame available" message is delivered
-        // there, but since we're not a Looper-based thread we'll never see it.  For
-        // this to do anything useful, CodecOutputSurface must be created on a thread without
-        // a Looper, so that SurfaceTexture uses the main application Looper instead.
-        //
-        // Java language note: passing "this" out of a constructor is generally unwise,
-        // but we should be able to get away with it here.
         mSurfaceTexture?.setOnFrameAvailableListener(this)
         mSurface = Surface(mSurfaceTexture)
         mPixelBuf = ByteBuffer.allocateDirect(mWidth * mHeight * 4)
@@ -101,7 +79,7 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
         }
 
         // Configure EGL for pbuffer and OpenGL ES 2.0, 24-bit RGB.
-        val attribList = intArrayOf(
+        val attributeList = intArrayOf(
             EGL14.EGL_RED_SIZE, 8,
             EGL14.EGL_GREEN_SIZE, 8,
             EGL14.EGL_BLUE_SIZE, 8,
@@ -113,7 +91,7 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
         val configs = arrayOfNulls<EGLConfig>(1)
         val numConfigs = IntArray(1)
         if (!EGL14.eglChooseConfig(
-                mEGLDisplay, attribList, 0, configs, 0, configs.size,
+                mEGLDisplay, attributeList, 0, configs, 0, configs.size,
                 numConfigs, 0
             )
         ) {
@@ -173,7 +151,7 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
     /**
      * Makes our EGL context and surface current.
      */
-    fun makeCurrent() {
+    private fun makeCurrent() {
         if (!EGL14.eglMakeCurrent(mEGLDisplay, mEGLSurface, mEGLSurface, mEGLContext)) {
             throw RuntimeException("eglMakeCurrent failed")
         }
@@ -192,13 +170,13 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
      * with the EGLContext that contains the GL texture object used by SurfaceTexture.)
      */
     fun awaitNewImage() {
-        val TIMEOUT_MS = 2500
+        val timeoutMS = 2500
         mFrameSyncLock.withLock{
             while (!mFrameAvailable) {
                 try {
                     // Wait for onFrameAvailable() to signal us.  Use a timeout to avoid
                     // stalling the test if it doesn't arrive.
-                    condition.await(TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+                    condition.await(timeoutMS.toLong(), TimeUnit.MILLISECONDS)
                     if (!mFrameAvailable) {
                         // TODO: if "spurious wakeup", continue while loop
                         throw RuntimeException("Frame wait timed out")
@@ -230,7 +208,7 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
 
     // SurfaceTexture callback
     override fun onFrameAvailable(st: SurfaceTexture?) {
-        if (VERBOSE) Log.d(TAG, "New frame available")
+        if (verbose) Log.d(TAG, "New frame available")
         mFrameSyncLock.withLock{
         if (mFrameAvailable) {
                 throw RuntimeException("mFrameAvailable already set, frame could be dropped")
@@ -281,13 +259,12 @@ class CodecOutputSurface(width: Int, height: Int, val isPortrait: Boolean) : Sur
 
         var rotation = 0
         var isFlipX = false
-        var isFlipY = false
         if (isPortrait){
             rotation = 180
             isFlipX = true
         }
 
-        return Frame(mPixelBuf, mWidth, mHeight, framePos, timestamp, rotation, isFlipX, isFlipY)
+        return Frame(mPixelBuf, mWidth, mHeight, framePos, timestamp, rotation, isFlipX, false)
     }
 
     /**
