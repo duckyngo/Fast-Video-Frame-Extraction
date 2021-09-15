@@ -17,12 +17,14 @@ import com.ducky.fastvideoframeextraction.decoder.FrameExtractor
 import com.ducky.fastvideoframeextraction.decoder.IVideoFrameExtractor
 import java.io.File
 import java.util.ArrayList
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
 
-    val appExecutors: AppExecutors = AppExecutors()
+    private val executorService: ExecutorService = Executors.newSingleThreadExecutor()
 
-    var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    private var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val data: Intent? = result.data
             val dataUri = data?.data
@@ -32,7 +34,7 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
                 val videoInputFile = File(videoInputPath)
                 try {
                     val frameExtractor = FrameExtractor(this)
-                    appExecutors.workThread().execute {
+                    executorService.execute {
                         frameExtractor.extractFrames(videoInputFile.absolutePath)
                     }
                 }  catch (throwable: Throwable) {
@@ -50,7 +52,7 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val videoSelectBt: Button = this.findViewById<Button>(R.id.select_bt)
+        val videoSelectBt: Button = this.findViewById(R.id.select_bt)
         videoSelectBt.setOnClickListener {
             openGalleryForVideo()
         }
@@ -143,5 +145,6 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
     }
 
     override fun onAllFrameExtracted(processedFrameCount: Int, processedTime: Long) {
+        Toast.makeText(this, "Save: $processedFrameCount frames took: $processedTime ms.", Toast.LENGTH_LONG).show()
     }
 }
