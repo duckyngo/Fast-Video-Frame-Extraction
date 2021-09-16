@@ -177,6 +177,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
         var totalSavingTimeNs: Long = 0
         var outputDone = false
         var inputDone = false
+        var presentationTimeUs: Long = 0
 
         if (verbose) Log.d(TAG, "Start extract loop...")
         while (!outputDone && !isTerminated) {
@@ -201,13 +202,13 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                         if (extractor.sampleTrackIndex != trackIndex) {
                             Log.w(TAG, "WEIRD: got sample from track " + extractor.sampleTrackIndex + ", expected " + trackIndex)
                         }
-                        val presentationTimeUs = extractor.sampleTime
+                        presentationTimeUs = extractor.sampleTime
                         decoder.queueInputBuffer(
                             inputBufIndex, 0, chunkSize,
                             presentationTimeUs, 0 /*flags*/
                         )
                         if (verbose) {
-                            Log.d(TAG, ("submitted frame $inputChunk to dec, size=$chunkSize"))
+                            Log.d(TAG, ("submitted frame $inputChunk to dec, size=$chunkSize at $presentationTimeUs"))
                         }
                         inputChunk++
                         extractor.advance()
@@ -260,7 +261,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                         }
                         if (decodeCount < MAX_FRAMES) {
                             val startWhen = System.nanoTime()
-                            val currentFrame = outputSurface.retrieveFrame(decodeCount, 0)
+                            val currentFrame = outputSurface.retrieveFrame(decodeCount, presentationTimeUs)
                             listener.onCurrentFrameExtracted(currentFrame)
                             totalSavingTimeNs += System.nanoTime() - startWhen
                             if(verbose) Log.d(TAG, "$decodeCount / Max: $MAX_FRAMES")

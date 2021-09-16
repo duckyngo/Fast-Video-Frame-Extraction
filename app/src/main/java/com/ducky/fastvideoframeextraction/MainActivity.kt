@@ -10,6 +10,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.MainThread
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.ducky.fastvideoframeextraction.decoder.Frame
@@ -138,13 +139,13 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         if (!allFrameFileFolder.isDirectory) {
             allFrameFileFolder.mkdirs()
         }
-        val frameFile = File(allFrameFileFolder, "frame_num_${currentFrame.position}.jpeg")
+        val frameFile = File(allFrameFileFolder, "frame_num_${currentFrame.timestamp.toString().padStart(10, '0')}.jpeg")
 
         // 3. Save current frame to storage
         imageBitmap?.let { Utils.saveImageToFile(it, frameFile) }
     }
 
     override fun onAllFrameExtracted(processedFrameCount: Int, processedTime: Long) {
-        Toast.makeText(this, "Save: $processedFrameCount frames took: $processedTime ms.", Toast.LENGTH_LONG).show()
+//        Toast.makeText(this, "Save: $processedFrameCount frames took: $processedTime ms.", Toast.LENGTH_LONG).show()
     }
 }
