@@ -1,18 +1,23 @@
 package com.ducky.fastvideoframeextraction
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.MainThread
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.recyclerview.widget.*
 import com.ducky.fastvideoframeextraction.decoder.Frame
 import com.ducky.fastvideoframeextraction.decoder.FrameExtractor
 import com.ducky.fastvideoframeextraction.decoder.IVideoFrameExtractor
@@ -24,6 +29,12 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
 
     private val executorService: ExecutorService = Executors.newSingleThreadExecutor()
+    private lateinit var imageAdapter: ImageAdapter
+    private var imagePaths = ArrayList<Uri>()
+    private var titles: ArrayList<String> = ArrayList()
+
+    var totalSavingTimeMS: Long = 0
+    lateinit var infoTextView: TextView
 
     private var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -54,7 +65,14 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         setContentView(R.layout.activity_main)
 
         val videoSelectBt: Button = this.findViewById(R.id.select_bt)
+        infoTextView = this.findViewById(R.id.info_tv)
+
         videoSelectBt.setOnClickListener {
+            // Clear all previous images path and title
+            imagePaths.clear()
+            titles.clear()
+            totalSavingTimeMS = 0
+
             openGalleryForVideo()
         }
 
@@ -69,6 +87,30 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         intent.type = "video/*"
         intent.action = Intent.ACTION_PICK
         resultLauncher.launch(intent)
+    }
+
+    private fun updateRecycleView() {
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+        if (recyclerView != null) {
+            val layoutManager = StaggeredGridLayoutManager(3, OrientationHelper.VERTICAL)
+            layoutManager.gapStrategy = StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS
+            recyclerView.layoutManager = layoutManager
+            imageAdapter = ImageAdapter(this, imagePaths, titles)
+            recyclerView.adapter = imageAdapter
+            recyclerView.itemAnimator = DefaultItemAnimator()
+
+            val dividerItemDecorationVertical = DividerItemDecoration(
+                recyclerView.context,
+                LinearLayout.HORIZONTAL
+            )
+
+            val dividerItemDecorationHorizontal = DividerItemDecoration(
+                recyclerView.context,
+                LinearLayout.VERTICAL
+            )
+            recyclerView.addItemDecoration(dividerItemDecorationVertical)
+            recyclerView.addItemDecoration(dividerItemDecorationHorizontal)
+        }
     }
 
     private fun getRequiredPermissions(): Array<String?> {
@@ -131,6 +173,8 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
     }
 
     override fun onCurrentFrameExtracted(currentFrame: Frame) {
+
+        val startSavingTime = System.currentTimeMillis()
         // 1. Convert frame byte buffer to bitmap
         val imageBitmap = Utils.fromBufferToBitmap(currentFrame.byteBuffer, currentFrame.width, currentFrame.height)
 
@@ -142,10 +186,23 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         val frameFile = File(allFrameFileFolder, "frame_num_${currentFrame.timestamp.toString().padStart(10, '0')}.jpeg")
 
         // 3. Save current frame to storage
-        imageBitmap?.let { Utils.saveImageToFile(it, frameFile) }
+        imageBitmap?.let {
+            val savedFile = Utils.saveImageToFile(it, frameFile)
+            savedFile?.let {
+                imagePaths.add(savedFile.toUri())
+                titles.add("${currentFrame.position} (${currentFrame.timestamp})")
+            }
+        }
+
+        totalSavingTimeMS += System.currentTimeMillis() - startSavingTime
     }
 
-    override fun onAllFrameExtracted(processedFrameCount: Int, processedTime: Long) {
-//        Toast.makeText(this, "Save: $processedFrameCount frames took: $processedTime ms.", Toast.LENGTH_LONG).show()
+    @SuppressLint("SetTextI18n")
+    override fun onAllFrameExtracted(processedFrameCount: Int, processedTimeMs: Long) {
+        Log.d(TAG, "Save: $processedFrameCount frames in: $processedTimeMs ms.")
+        this.runOnUiThread {
+            updateRecycleView()
+            infoTextView.text = "Extract $processedFrameCount frames took $processedTimeMs ms| Saving took: $totalSavingTimeMS ms"
+        }
     }
 }

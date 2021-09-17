@@ -277,7 +277,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
                 "| Total time: ${totalSavingTimeNs / 1000000} ms  " +
                 "| Each frame took: ${(totalSavingTimeNs / totalSavedFrames / 1000)} us "))
 
-        listener.onAllFrameExtracted(totalSavedFrames, totalSavingTimeNs)
+        listener.onAllFrameExtracted(totalSavedFrames, totalSavingTimeNs / 1000000)
     }
 
     companion object {
