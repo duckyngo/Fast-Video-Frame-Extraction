@@ -1,4 +1,4 @@
-<img src="images/ic_launcher-playstore.png" width="48">
+<img src="images/ic_launcher-playstore.png" width="100">
 
 # Fast Video Frame Extraction
 ![Workflow result](https://github.com/2307vivek/Adopty/workflows/Check/badge.svg)
