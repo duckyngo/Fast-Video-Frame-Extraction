@@ -13,8 +13,12 @@
 ## Screenshots
 
 <img src="images/sr01.gif" width="320">
-<img src="images/ss01.png" width="320">
-<img src="images/ss02.png" width="320">
+
+
+<p float="left">
+    <img src="images/ss01.png" width="300">
+    <img src="images/ss02.png" width="300">
+</p>
 
 ## Getting Started
 * Run the example code on your Android device or emulator
