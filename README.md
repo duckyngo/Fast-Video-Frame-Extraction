@@ -12,9 +12,9 @@
 
 ## Screenshots
 
-<img src="images/sr01.gif" width="640">
-<img src="images/sc01.gif" width="640">
-<img src="images/sc02.gif" width="640">
+<img src="images/sr01.gif" width="400">
+<img src="images/sc01.png" width="400">
+<img src="images/sc02.png" width="400">
 
 
 ## Getting Started
