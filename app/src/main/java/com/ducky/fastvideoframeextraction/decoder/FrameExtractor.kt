@@ -54,7 +54,7 @@ class FrameExtractor(private val listener: IVideoFrameExtractor) {
             extractor.setDataSource(inputFile.toString())
             val trackIndex = selectTrack(extractor)
             if (trackIndex < 0) {
-                throw RuntimeException("No video track found in $inputFile")
+                throw IOException("No video track found in $inputFile")
             }
             extractor.selectTrack(trackIndex)
 

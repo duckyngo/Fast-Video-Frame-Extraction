@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -14,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -22,7 +22,7 @@ import com.ducky.fastvideoframeextraction.decoder.Frame
 import com.ducky.fastvideoframeextraction.decoder.FrameExtractor
 import com.ducky.fastvideoframeextraction.decoder.IVideoFrameExtractor
 import java.io.File
-import java.util.ArrayList
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -44,15 +44,20 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
                 val uriPathHelper = URIPathHelper()
                 val videoInputPath = uriPathHelper.getPath(this, dataUri).toString()
                 val videoInputFile = File(videoInputPath)
-                try {
-                    val frameExtractor = FrameExtractor(this)
-                    executorService.execute {
+
+                val frameExtractor = FrameExtractor(this)
+                executorService.execute {
+                    try {
+
                         frameExtractor.extractFrames(videoInputFile.absolutePath)
+                    } catch (exception: Exception) {
+                        exception.printStackTrace()
+                        this.runOnUiThread {
+                            Toast.makeText(this, "Failed to extract frames", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                }  catch (throwable: Throwable) {
-                    throwable.printStackTrace()
-                    Toast.makeText(this, "Failed to extract frames", Toast.LENGTH_SHORT).show()
                 }
+
 
             } else {
                 Toast.makeText(this, "Video input error!", Toast.LENGTH_LONG).show()
@@ -167,7 +172,7 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         return false
     }
 
-    companion object{
+    companion object {
         private const val TAG = "MainActivity"
         private const val PERMISSION_REQUESTS = 1
     }
@@ -179,7 +184,7 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         val imageBitmap = Utils.fromBufferToBitmap(currentFrame.byteBuffer, currentFrame.width, currentFrame.height)
 
         // 2. Get the frame file in app external file directory
-        val allFrameFileFolder = File(this.getExternalFilesDir(null), "all-frames")
+        val allFrameFileFolder = File(this.getExternalFilesDir(null), UUID.randomUUID().toString())
         if (!allFrameFileFolder.isDirectory) {
             allFrameFileFolder.mkdirs()
         }
@@ -195,6 +200,10 @@ class MainActivity : AppCompatActivity(), IVideoFrameExtractor {
         }
 
         totalSavingTimeMS += System.currentTimeMillis() - startSavingTime
+
+        this.runOnUiThread {
+            infoTextView.text = "Extract ${currentFrame.position} frames"
+        }
     }
 
     @SuppressLint("SetTextI18n")

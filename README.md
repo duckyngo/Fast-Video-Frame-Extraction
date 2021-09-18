@@ -6,9 +6,20 @@
 :zap: A fast & easy to use Video Frame Extraction for Android :zap:
 ---
 ## Features
+* Extract all the frames from videos with high speed
+* Output frame in Bytebuffer or saving to png/jpeg images files
+* Getting position, timestamp of each frame in a video
 
 ## Screenshots
 
+<img src="images/sr01.gif" width="640">
+<img src="images/sc01.gif" width="640">
+<img src="images/sc02.gif" width="640">
+
+
+## Getting Started
+* Run the example code on your Android device or emulator
+* Extend the code with more features or functionality
 
 ## **License**
 ```

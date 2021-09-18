@@ -23,6 +23,7 @@
         android:padding="3dp"
         app:layout_constraintBottom_toTopOf="@id/select_bt"
         android:textSize="12sp"
+        android:textAlignment="center"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"/>
 
