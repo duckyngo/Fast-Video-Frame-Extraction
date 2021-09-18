@@ -12,10 +12,9 @@
 
 ## Screenshots
 
-<img src="images/sr01.gif" width="400">
-<img src="images/sc01.png" width="400">
-<img src="images/sc02.png" width="400">
-
+<img src="images/sr01.gif" width="320">
+<img src="images/ss01.png" width="320">
+<img src="images/ss02.png" width="320">
 
 ## Getting Started
 * Run the example code on your Android device or emulator
