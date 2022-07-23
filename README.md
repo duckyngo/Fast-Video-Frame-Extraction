@@ -1,7 +1,6 @@
 <img src="images/ic_launcher-playstore.png" width="100">
 
 # Fast Video Frame Extraction
-![Workflow result](https://github.com/2307vivek/Adopty/workflows/Check/badge.svg)
 
 :zap: A fast & easy to use Video Frame Extraction for Android :zap:
 ---
